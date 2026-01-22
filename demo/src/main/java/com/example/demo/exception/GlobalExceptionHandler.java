@@ -1,30 +1,62 @@
-
 package com.example.demo.exception;
-import org.springframework.web.bind.annotation.*;
+
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(ResourceNotFoundException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public Map<String,Object> handleNotFound(ResourceNotFoundException ex){
-        return Map.of(
-                "status",404,
-                "message",ex.getMessage(),
-                "time", LocalDateTime.now()
-        );
+    // ✅ 1. VALIDATION ERRORS (Blank name / email)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, Object>> handleValidationErrors(
+            MethodArgumentNotValidException ex) {
+
+        Map<String, String> errors = new HashMap<>();
+
+        ex.getBindingResult()
+                .getFieldErrors()
+                .forEach(error ->
+                        errors.put(error.getField(), error.getDefaultMessage())
+                );
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", 400);
+        response.put("errors", errors);
+        response.put("time", LocalDateTime.now());
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    // ✅ 2. DUPLICATE EMAIL ERROR
+    @ExceptionHandler(DuplicateEmailException.class)
+    public ResponseEntity<Map<String, Object>> handleDuplicateEmail(
+            DuplicateEmailException ex) {
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", 400);
+        response.put("message", ex.getMessage());
+        response.put("time", LocalDateTime.now());
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Map<String,Object> handleGeneric(Exception ex){
-        return Map.of(
-                "status",500,
-                "message","Internal Server Error",
-                "time", LocalDateTime.now()
-        );
+    public ResponseEntity<Map<String, Object>> handleGeneralException(
+            Exception ex) {
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", 500);
+        response.put("message", "Internal Server Error");
+        response.put("time", LocalDateTime.now());
+
+        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
