@@ -19,6 +19,7 @@ public class UserServiceImplV2 implements UserService {
     @Override
     public User createUser(User user) {
         user.setName(user.getName().toUpperCase());
+        user.setStatus("ACTIVE_V2");
         return repo.save(user);
     }
 
@@ -34,34 +35,30 @@ public class UserServiceImplV2 implements UserService {
 
     @Override
     public User updateUser(Long id, User user) {
-        return createUser(user);
+        User existing = repo.findById(id).orElse(null);
+        if (existing == null) return null;
+
+        existing.setName(user.getName().toUpperCase());
+        existing.setEmail(user.getEmail());
+        return repo.save(existing);
     }
 
-    // ✅ ADD THIS METHOD
     @Override
     public User patchUser(Long id, User user) {
         User existing = repo.findById(id).orElse(null);
-
-        if (existing == null) {
-            return null;
-        }
+        if (existing == null) return null;
 
         if (user.getName() != null) {
             existing.setName(user.getName().toUpperCase());
         }
-
         if (user.getEmail() != null) {
             existing.setEmail(user.getEmail());
         }
-
         return repo.save(existing);
     }
 
     @Override
     public void deleteUser(Long id) {
-        User user = getUserById(id);
-        if (user != null) {
-            repo.delete(user);
-        }
+        repo.deleteById(id);
     }
 }
